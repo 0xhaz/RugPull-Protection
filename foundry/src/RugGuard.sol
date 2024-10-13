@@ -221,7 +221,6 @@ contract RugGuard is BaseHook, Ownable, ReentrancyGuard, AutomationCompatibleInt
      * @param key The pool key
      * @param params The liquidity parameters
      * @param delta The balance delta
-     * @param feesAccrued The fees accrued
      * @return The function selector and balance delta
      */
     function afterAddLiquidity(
@@ -229,7 +228,7 @@ contract RugGuard is BaseHook, Ownable, ReentrancyGuard, AutomationCompatibleInt
         PoolKey calldata key,
         IPoolManager.ModifyLiquidityParams calldata params,
         BalanceDelta delta,
-        BalanceDelta feesAccrued,
+        BalanceDelta, /*feesAccrued*/
         bytes calldata
     ) external override returns (bytes4, BalanceDelta) {
         PoolId poolId = key.toId();
@@ -564,9 +563,9 @@ contract RugGuard is BaseHook, Ownable, ReentrancyGuard, AutomationCompatibleInt
      * @notice Withdraws all Ether from the contract to the owner
      */
     function withdrawEther() external onlyOwner {
-        uint balance = address(this).balance;
+        uint256 balance = address(this).balance;
         require(balance > 0, "RugGuard: No Ether to withdraw");
-        (bool success, ) = payable(owner()).call{value: balance}("");
+        (bool success,) = payable(owner()).call{value: balance}("");
         require(success, "RugGuard: Ether withdrawal failed");
     }
 }

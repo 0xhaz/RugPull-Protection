@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: SEE LICENSE IN LICENSE
-pragma solidity ^0.8.24;
+// SPDX-License-Identifier: GPL-2.0-or-later
+pragma solidity ^0.8.21;
 
 import {BalanceDelta, toBalanceDelta} from "v4-core/types/BalanceDelta.sol";
 import {Currency, CurrencyLibrary} from "v4-core/types/Currency.sol";
@@ -8,11 +8,9 @@ import {PositionConfig} from "v4-periphery/src/libraries/PositionConfig.sol";
 import {Actions} from "v4-periphery/src/libraries/Actions.sol";
 import {SafeCast} from "v4-core/libraries/SafeCast.sol";
 
-/**
- * @title Easy Position Manager
- * @notice A library for abstracting the PositionManager calldata
- * @dev Useable onchain, but expensive because of encoding
- */
+/// @title Easy Position Manager
+/// @notice A library for abstracting Position Manager calldata
+/// @dev Useable onchain, but expensive because of encoding
 library EasyPosm {
     using CurrencyLibrary for Currency;
     using SafeCast for uint256;
@@ -38,7 +36,7 @@ library EasyPosm {
         uint256 balance0Before = currency0.balanceOf(address(this));
         uint256 balance1Before = currency1.balanceOf(address(this));
 
-        // Mint liquidity
+        // Mint Liquidity
         tokenId = posm.nextTokenId();
         posm.modifyLiquidities(
             abi.encode(abi.encodePacked(uint8(Actions.MINT_POSITION), uint8(Actions.SETTLE_PAIR)), params), deadline
