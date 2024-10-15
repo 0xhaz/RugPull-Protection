@@ -28,6 +28,7 @@ import {MockChainlinkAggregator} from "./mocks/MockChainlinkAggregator.sol";
 contract RugGuardTest is Test, Fixtures {
     using PoolIdLibrary for PoolKey;
     using CurrencyLibrary for Currency;
+    using EasyPosm for IPositionManager;
 
     RugGuard hook;
     PoolId poolId;
@@ -99,12 +100,107 @@ contract RugGuardTest is Test, Fixtures {
 
         (initialTokenId,) = posm.mint(
             config,
-            100e18,
+            1000e18,
             MAX_SLIPPAGE_ADD_LIQUIDITY,
             MAX_SLIPPAGE_ADD_LIQUIDITY,
             address(this),
             block.timestamp,
             ZERO_BYTES
         );
+
+        address token0 = Currency.unwrap(currency0);
+        address token1 = Currency.unwrap(currency1);
+
+        hook.setPriceFeed(address(token0), address(priceFeed0));
+        hook.setPriceFeed(address(token1), address(priceFeed1));
+    }
+
+    /**
+     * @notice Test the initialization of the RugGuard contract
+     * @dev Verifies that the contract is initialized correctly
+     */
+    function testInitialization() public view {
+        (, uint256 liquidityChangeThreshold, uint256 totalLiquidity, uint256 riskScore,,,) = hook.poolInfo(poolId);
+
+        assertEq(liquidityChangeThreshold, hook.DEFAULT_LIQUIDITY_CHANGE_THRESHOLD());
+        assertEq(totalLiquidity, 1000e18);
+        assertEq(riskScore, 45);
+    }
+
+    /**
+     * @notice Test adding liquidity to the pool
+     * @dev Verifies that the liquidity change is handled correctly
+     */
+    function testLiquidityAddition() public {
+        uint256 addAmount = 5e18;
+        (uint256 newTokenId,) = posm.mint(
+            config,
+            addAmount,
+            MAX_SLIPPAGE_ADD_LIQUIDITY,
+            MAX_SLIPPAGE_ADD_LIQUIDITY,
+            address(this),
+            block.timestamp,
+            ZERO_BYTES
+        );
+
+        (
+            uint256 lastLiquidityChangeTimestamp,
+            uint256 liquidityChangeThreshold,
+            uint256 totalLiquidity,
+            uint256 riskScore,
+            uint256 totalVolume24h,
+            uint256 lastVolumeUpdateTimestamp,
+            int256 lastPrice
+        ) = hook.poolInfo(poolId);
+
+        assertEq(totalLiquidity, 1000e18 + addAmount);
+        assertEq(riskScore, 40);
+        assertEq(lastLiquidityChangeTimestamp, block.timestamp);
+        assertEq(lastPrice, 0);
+        assertEq(totalVolume24h, 0);
+        assertEq(lastVolumeUpdateTimestamp, block.timestamp);
+        assertEq(liquidityChangeThreshold, hook.DEFAULT_LIQUIDITY_CHANGE_THRESHOLD());
+    }
+
+    /**
+     * @notice Test removing liquidity from the pool
+     * @dev Verifies that the liquidity change is handled correctly
+     */
+    function testLiquidityRemoval() public {
+        (
+            uint256 lastLiquidityChangeTimestamp,
+            uint256 liquidityChangeThreshold,
+            uint256 initialTotalLiquidity,
+            uint256 initialRiskScore,
+            uint256 totalVolume24h,
+            uint256 lastVolumeUpdateTimestamp,
+            int256 lastPrice
+        ) = hook.poolInfo(poolId);
+
+        uint256 removeAmount = 10e18;
+
+        posm.decreaseLiquidity(
+            initialTokenId,
+            config,
+            removeAmount,
+            MAX_SLIPPAGE_REMOVE_LIQUIDITY,
+            MAX_SLIPPAGE_REMOVE_LIQUIDITY,
+            address(this),
+            block.timestamp,
+            ZERO_BYTES
+        );
+
+        (
+            uint256 finalLastLiquidityChangeTimestamp,
+            uint256 finalLiquidityChangeThreshold,
+            uint256 finalTotalLiquidity,
+            uint256 finalRiskScore,
+            uint256 finalTotalVolume24h,
+            uint256 finalLastVolumeUpdateTimestamp,
+            int256 finalLastPrice
+        ) = hook.poolInfo(poolId);
+
+        assertEq(finalTotalLiquidity, initialTotalLiquidity - removeAmount);
+        assertEq(finalRiskScore, initialRiskScore);
     }
 }
