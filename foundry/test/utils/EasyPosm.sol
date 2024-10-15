@@ -16,6 +16,9 @@ library EasyPosm {
     using SafeCast for uint256;
     using SafeCast for int256;
 
+    event LogUnlockData(bytes unlockData);
+    event LogDataLength(uint256 param0Length, uint256 param1Length, uint256 param2Length);
+
     function mint(
         IPositionManager posm,
         PositionConfig memory config,
@@ -35,6 +38,11 @@ library EasyPosm {
 
         uint256 balance0Before = currency0.balanceOf(address(this));
         uint256 balance1Before = currency1.balanceOf(address(this));
+
+        bytes memory unlockData =
+            abi.encode(abi.encodePacked(uint8(Actions.MINT_POSITION), uint8(Actions.SETTLE_PAIR)), params);
+
+        emit LogUnlockData(unlockData);
 
         // Mint Liquidity
         tokenId = posm.nextTokenId();
